@@ -1,0 +1,108 @@
+/*******************
+* ■BDSP用のコード、孵化余りなどのポケモンを逃がす処理をボックス単位で自動化しています。
+* 
+* ～注意～
+* ※逃がすという処理を自動化するにあたって、下手をすると取り返しがつかない事という認識の上
+* ※利用する際はかならずオートセーブをOFFにして、実行前にセーブをしてください。
+* ※このコードによって起きたあらゆる事象において、製作者は責任を持ちません。
+* 
+* ～実行前に行うこと～
+* 1.Xボタンを押下した時、メニュー上でポケモンが一番左上にある状態に配置する
+* 2.リリースしたいポケモンをボックス1から順番に敷き詰める
+*   この際隙間があると確実に誤作動を起こします、絶対に隙間なくボックスを埋めてください
+*   30匹を超えてリリースする場合はボックス2、ボックス3、といった具合に配置してください
+* 3.このコードはボックス単位での指定となりますので、必ずリリースしたいポケモンは
+*   30匹単位で用意してください、35匹などの半端な数では誤作動を起こす可能性があります
+* 4.このコード上部で定義されているGOALの横の数を指定してください、逃したいポケモン
+*   をBOX単位で指定したときのBOX数となります
+*   この数×30匹が自動でリリースされます
+* 5.表示されているボックスを必ずボックス1にした状態で閉じてください
+* 6.設定に関しては、テキストスピードを「はやい」に設定してください
+* 7.オートセーブはOFFにした上で、レポートを書いてください
+*   不具合時は直ちにゲームをリセットしてセーブ地点からやりなおしてください
+* 8.ボックスが開ける状態でマイコンを接続してください、勝手にボックスを開いて処理を開始します
+* 
+* その他、不明な点・ご要望などございましたら黄燐 (TwitterID: @Ru_no4)までご連絡ください
+* 
+*******************/
+
+#include <NintendoSwitchControlLibrary.h>
+
+int box_count = 0;
+
+// 逃がすポケモンのbox数を入力（×30匹のポケモンを逃がす）
+#define GOAL 3
+
+// 逃したポケモンの数のカウンタ
+int releasedPokemonNum = 0;
+
+// メニューを開き、BOXを開く
+void openBox(){
+    // ボックスを開く、メニューのカーソルはあらかじめ「ポケモン」に合わせておく
+    pushButton(Button::X, 1000);
+    pushButton(Button::A, 2000);
+    pushButton(Button::R, 2000);
+}
+
+// ポケモンを逃がす動作を行う関数
+void releasePokemon(){
+  pushButton(Button::A, 200);
+  pushHat(Hat::UP, 200, 2);
+  pushButton(Button::A, 200);
+  pushHat(Hat::UP, 200);
+  pushButton(Button::A, 500, 2);
+  // 右隣のポケモンにカーソルを合わせる
+  pushHat(Hat::RIGHT, 300);
+}
+
+// ボックス内のカーソルを操作しながら逃がす関数
+void releasePokemonInBox(){
+  for(int box_row=0; box_row<5; box_row++){
+    for(int box_column=0; box_column<6; box_column++){
+      releasePokemon();
+      releasedPokemonNum++;
+    }
+    pushHat(Hat::DOWN,300);
+    // カーソルが手持ちに合っているので余分にカーソルをずらす
+    pushHat(Hat::RIGHT,300);
+  }
+}
+
+// 次のボックスにカーソルを移動
+void moveNextBox(){
+  // 一番左上にカーソルを移動
+  pushHat(Hat::DOWN, 300, 2);
+  // 次ボックスへ移動
+  pushButton(Button::R, 1000);
+}
+
+// おやすみ
+void sleepNow()
+{
+  holdButton(Button::HOME, 1500);
+  pushButton(Button::A, 1000);
+  while(true){
+    delay(60000);
+  }
+}
+
+void setup() {
+  // 画面起動    
+  pushButton(Button::B, 300, 12);
+  // ボックスを開く
+  openBox();
+}
+
+void loop() {
+  if(box_count >= GOAL){
+    sleepNow();
+  }
+  else{
+    // ボックス内のポケモンを順次逃がす
+    releasePokemonInBox();
+    // 次のボックスへ移動
+    moveNextBox();
+    // box_count増加
+    box_count++;
+  }
+}
